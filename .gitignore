@@ -1,0 +1,31 @@
+# Environment files
+.env
+
+# PocketBase data
+data/
+pb_data/
+
+# Backups
+*.zip
+*.tar.gz
+backups/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# SSL certificates (if added)
+nginx/ssl/
+*.pem
+*.key
+*.crt

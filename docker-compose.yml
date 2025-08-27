@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  pocketbase:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pocketbase
+    restart: unless-stopped
+    ports:
+      - "8091:8080"
+    volumes:
+      - ./data/pb_data:/pb/pb_data
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - pocketbase
