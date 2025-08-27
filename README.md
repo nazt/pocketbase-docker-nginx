@@ -30,7 +30,7 @@ docker-compose up -d
 ### PocketBase
 - Port: 8092 (direct access)
 - Data: `./data/pb_data` (local volume)
-- Version: 0.29.3 (configurable in .env)
+- Version: 0.29.3 (configurable via build args)
 
 ### Nginx
 - Port: 80 (HTTP)
@@ -57,13 +57,19 @@ docker-compose up -d
 └── README.md              # This file
 ```
 
-## Environment Variables
+## Upgrading PocketBase
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| PB_VERSION | 0.29.3 | PocketBase version |
-| NGINX_PORT | 80 | Nginx HTTP port |
-| SERVER_NAME | localhost | Server name for Nginx |
+To upgrade PocketBase to a newer version:
+
+```bash
+# Upgrade to specific version
+PB_VERSION=0.30.0 docker compose build pocketbase
+docker compose up -d pocketbase
+
+# Or edit docker-compose.yml and rebuild
+docker compose build pocketbase
+docker compose up -d pocketbase
+```
 
 ## Admin Setup
 
