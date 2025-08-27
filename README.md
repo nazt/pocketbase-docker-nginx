@@ -21,14 +21,14 @@ docker-compose up -d
 ```
 
 4. Access PocketBase:
-- Direct access: http://localhost:8091
+- Direct access: http://localhost:8092
 - Via Nginx proxy: http://localhost
 - Admin UI: http://localhost/_/
 
 ## Services
 
 ### PocketBase
-- Port: 8091 (direct access)
+- Port: 8092 (direct access)
 - Data: `./data/pb_data` (local volume)
 - Version: 0.29.3 (configurable in .env)
 
@@ -40,7 +40,7 @@ docker-compose up -d
 ## Architecture
 
 ```
-[Client] → [Nginx:80] → [PocketBase:8080] → [Local Volume:./data/pb_data]
+[Client] → [Nginx:80] → [PocketBase:8090] → [Local Volume:./data/pb_data]
 ```
 
 ## Directory Structure
