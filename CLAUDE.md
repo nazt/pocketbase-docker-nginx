@@ -624,11 +624,235 @@ gh issue comment XXX --body "Session retrospective created: ${RETRO_PATH}"
 - File names may use UTC for technical consistency
 - In all displays and retrospectives, prioritize GMT+7 for user clarity
 
-#### `gogogo` - Execute Planned Implementation
-1.  **Find Implementation Issue**: Locate the most recent `plan:` issue.
-2.  **Execute Implementation**: Follow the plan step-by-step, making all necessary code changes.
-3.  **Test & Verify**: Run all relevant tests and verify the implementation works.
-4.  **Commit & Push**: Commit with a descriptive message, push to the feature branch, and create/update the PR.
+#### `gogogo` - Execute Planned Implementation (Bulletproof GitHub Flow)
+**Purpose**: Systematically implement the most recent plan issue with foolproof GitHub workflow.
+
+**PHASE 1: ISSUE ANALYSIS & CONTEXT GATHERING**
+1.  **Find Latest Plan Issue**:
+    ```bash
+    # Get the most recent plan issue
+    gh issue list --label "plan" --limit 1 --json number,title,body
+    ```
+
+2.  **Extract Implementation Context**:
+    - Read the issue body completely
+    - Identify all files that need modification
+    - Extract acceptance criteria and success metrics
+    - Note any special testing requirements
+    - Understand branch strategy (new vs existing)
+
+3.  **Validate Prerequisites**:
+    ```bash
+    # Ensure we're on main and updated
+    git status --porcelain
+    git branch --show-current
+    git fetch origin
+    git status -uno
+    ```
+
+**PHASE 2: BRANCH STATE VALIDATION & SETUP**
+4.  **Determine Branch Strategy**:
+    ```bash
+    # Check if issue mentions specific branch or if we need new one
+    ISSUE_NUMBER=$(gh issue list --label "plan" --limit 1 --json number --jq '.[0].number')
+    BRANCH_NAME="feat/issue-${ISSUE_NUMBER}-$(echo $TITLE | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]')"
+    
+    # Check if branch already exists locally or remotely
+    git branch -a | grep -E "(remotes/origin/)?${BRANCH_NAME}$" || echo "New branch needed"
+    ```
+
+5.  **Safe Branch Operations**:
+    ```bash
+    # If new branch needed:
+    git checkout main
+    git pull origin main
+    git checkout -b $BRANCH_NAME
+    
+    # If branch exists:
+    git checkout $BRANCH_NAME
+    git fetch origin $BRANCH_NAME
+    git status --porcelain # Verify clean state
+    ```
+
+6.  **Pre-Implementation Validation**:
+    ```bash
+    # Verify we're in correct state
+    echo "Current branch: $(git branch --show-current)"
+    echo "Working directory status:"
+    git status --porcelain
+    echo "Remote tracking:"
+    git branch -vv | grep "$(git branch --show-current)"
+    ```
+
+**PHASE 3: SYSTEMATIC IMPLEMENTATION**
+7.  **Execute Plan Step-by-Step**:
+    - Follow the implementation plan exactly as written
+    - Make ONE change at a time per step
+    - Validate each change before proceeding to next step
+    - For ESPHome projects: Use `esphome compile config/file.yml` after each change
+
+8.  **Incremental Validation**:
+    ```bash
+    # After each implementation step
+    git status --porcelain
+    git diff --name-only
+    
+    # For ESPHome: compile check
+    esphome compile fw/07-floodboy-c3-radar/config/floodboy-c3-wave001.yml 2>&1 | tail -50
+    ```
+
+**PHASE 4: PRE-COMMIT VALIDATION CHECKLIST**
+9.  **Complete Implementation Verification**:
+    - [ ] All files from plan have been modified
+    - [ ] All acceptance criteria are met
+    - [ ] No compilation/syntax errors
+    - [ ] Working directory shows expected changes only
+
+10. **Git State Validation**:
+    ```bash
+    # Verify what we're about to commit
+    echo "=== Files to be committed ==="
+    git diff --cached --name-only
+    echo "=== Files modified but not staged ==="
+    git diff --name-only
+    echo "=== Untracked files ==="
+    git ls-files --others --exclude-standard
+    
+    # Stage all changes
+    git add -A
+    echo "=== Final staged changes ==="
+    git diff --cached --name-only
+    ```
+
+**PHASE 5: COMMIT & PUSH VALIDATION**
+11. **Commit with Structured Message**:
+    ```bash
+    # Extract issue details for commit message
+    ISSUE_TITLE=$(gh issue view $ISSUE_NUMBER --json title --jq '.title')
+    
+    git commit -m "$(cat <<EOF
+feat: ${ISSUE_TITLE}
+
+- What: [Describe specific changes made]
+- Why: [Implementation reasoning from plan]
+- Impact: [Areas affected]
+
+Implements plan from issue #${ISSUE_NUMBER}
+EOF
+)"
+    ```
+
+12. **Pre-Push Branch Validation**:
+    ```bash
+    # Verify commit was successful
+    git log --oneline -1
+    git status --porcelain # Should be clean now
+    
+    # Verify we're on correct branch
+    echo "Current branch: $(git branch --show-current)"
+    echo "Expected branch: $BRANCH_NAME"
+    ```
+
+**PHASE 6: PUSH & PR CREATION WITH SAFETY CHECKS**
+13. **Safe Push Operation**:
+    ```bash
+    # Check if remote branch exists
+    git ls-remote --heads origin $BRANCH_NAME
+    
+    # Push with upstream tracking
+    git push -u origin $BRANCH_NAME
+    
+    # Verify push was successful
+    git status -uno # Should show "up to date with origin/branch"
+    ```
+
+14. **Pre-PR Validation Checklist**:
+    - [ ] Branch exists on remote: `git ls-remote --heads origin $BRANCH_NAME`
+    - [ ] Local branch tracks remote: `git branch -vv | grep $BRANCH_NAME`
+    - [ ] Working directory is clean: `git status --porcelain` returns nothing
+    - [ ] Latest commit contains our changes: `git log --oneline -1`
+
+15. **PR Creation with Context**:
+    ```bash
+    # Create PR with proper context
+    gh pr create --title "$(git log -1 --format='%s')" --body "$(cat <<EOF
+## Summary
+Implements the plan outlined in issue #${ISSUE_NUMBER}
+
+## Changes Made
+- [List specific changes from commit]
+
+## Testing
+- [x] ESPHome compilation successful (if applicable)
+- [x] All implementation steps from plan completed
+- [x] Working directory clean after implementation
+
+## Acceptance Criteria
+[Copy from original issue and mark as completed]
+
+Closes #${ISSUE_NUMBER}
+EOF
+)"
+    ```
+
+**PHASE 7: POST-PR VALIDATION & SUCCESS CONFIRMATION**
+16. **Verify PR Creation Success**:
+    ```bash
+    # Confirm PR was created
+    gh pr list --head $BRANCH_NAME
+    PR_URL=$(gh pr view --json url --jq '.url')
+    echo "✅ PR created successfully: $PR_URL"
+    ```
+
+17. **Final State Report**:
+    ```bash
+    echo "=== GOGOGO EXECUTION COMPLETE ==="
+    echo "Issue: #${ISSUE_NUMBER}"
+    echo "Branch: $BRANCH_NAME"
+    echo "PR URL: $PR_URL"
+    echo "Status: Ready for review"
+    ```
+
+**RECOVERY PROCEDURES:**
+
+**If Branch Creation Fails:**
+```bash
+git checkout main
+git branch -D $BRANCH_NAME 2>/dev/null || true
+git pull origin main
+git checkout -b $BRANCH_NAME
+```
+
+**If Push Fails:**
+```bash
+git status --porcelain
+git log --oneline -3
+# Resolve conflicts if any, then retry push
+```
+
+**If PR Creation Fails:**
+```bash
+# Verify branch exists remotely
+git ls-remote --heads origin $BRANCH_NAME
+# Try creating PR with minimal body first
+gh pr create --title "$(git log -1 --format='%s')" --body "Implements #${ISSUE_NUMBER}"
+```
+
+**QUALITY ASSURANCE GATES:**
+- **Gate 1**: Issue analysis complete and context understood
+- **Gate 2**: Branch state validated and clean
+- **Gate 3**: Implementation follows plan exactly
+- **Gate 4**: Pre-commit checks pass
+- **Gate 5**: Push successful with remote tracking
+- **Gate 6**: PR created and accessible
+
+**SUCCESS CRITERIA:**
+- ✅ Implementation matches plan exactly  
+- ✅ All files compile/validate successfully
+- ✅ Git history is clean and traceable
+- ✅ PR is created and linked to issue
+- ✅ Working directory is clean post-implementation
+- ✅ Branch properly tracks remote
 
 ## Technical Reference
 
@@ -717,9 +941,24 @@ Closes #[issue-number]
 -   **Skipping AI Diary and Honest Feedback in retrospectives** - These sections provide crucial context and self-reflection that technical documentation alone cannot capture
 -   **Assuming standard Node.js environment in PocketBase JSVM** - It's Goja (Go's JS engine) with limitations
 -   **Defining functions at top level expecting them to be accessible in hooks** - They won't be due to VM isolation
--   *Example: Forgetting to update a lockfile after changing dependencies.*
--   *Example: Not checking build logs for warnings that could become errors.*
--   *Example: Making assumptions about API responses instead of checking the spec.*
+
+### GitHub Flow PR Creation Failures (2025-08-27)
+-   **Branch State Confusion** - Always validate current branch and working directory status before starting implementation
+-   **Skipping Issue Analysis** - Never implement without thoroughly reading and understanding the plan issue context
+-   **Incomplete Context Extraction** - Always identify ALL files that need modification from the issue before starting
+-   **Missing Branch Strategy** - Determine if new branch is needed or existing branch should be used BEFORE making changes
+-   **Pushing Without Remote Tracking** - Always use `git push -u origin branch-name` for new branches
+-   **Creating PR Without Validation** - Always verify branch exists on remote and working directory is clean before PR creation
+-   **Ignoring Pre-Push Checks** - Running git status, verifying commits, and checking branch tracking prevents most failures
+-   **Not Following Systematic Phases** - The 7-phase gogogo workflow prevents branch state confusion and PR creation errors
+-   **Assuming Branch Exists** - Always check if branch exists locally and remotely before operations
+-   **Incomplete Commit Messages** - Structured commit messages with context prevent confusion during PR creation
+
+### Recovery Patterns for GitHub Flow Failures
+-   **Branch Creation Failure Recovery** - Delete local branch, return to main, pull, and recreate branch cleanly
+-   **Push Failure Recovery** - Check git status and log, resolve any conflicts, then retry with proper upstream tracking
+-   **PR Creation Failure Recovery** - Verify remote branch exists, start with minimal PR body, then edit if needed
+-   **Working Directory Confusion** - Use `git status --porcelain` to validate clean state at each phase gate
 
 ### Useful Tricks Discovered
 -   **Parallel agents for analysis** - Using multiple agents to analyze different aspects speeds up planning significantly
@@ -784,9 +1023,48 @@ gh pr create           # Create PR
 # Tmux
 tmux attach -t dev     # Attach to session
 Ctrl+b, d              # Detach from session
+
+# GOGOGO Quick Validation Commands
+git status --porcelain                    # Should be empty when clean
+git branch --show-current                 # Verify current branch
+git branch -vv | grep $(git branch --show-current)  # Check remote tracking
+gh issue list --label "plan" --limit 1    # Find latest plan issue
+git ls-remote --heads origin BRANCH       # Verify remote branch exists
 ```
 
-### C. Environment Checklist
+### C. GOGOGO Quick Execution Checklist
+
+**Before Starting (Phase 1-2):**
+- [ ] `gh issue list --label "plan" --limit 1` - Found plan issue
+- [ ] Read issue body completely - Context understood  
+- [ ] `git status --porcelain` - Working directory clean
+- [ ] `git branch --show-current` - On correct branch
+- [ ] `git pull origin main` - Up to date with remote
+
+**During Implementation (Phase 3-4):**
+- [ ] Following plan steps exactly - No deviations
+- [ ] `esphome compile` after each change (ESPHome projects)
+- [ ] `git status --porcelain` - Only expected files changed
+- [ ] All acceptance criteria met from issue
+
+**Before Commit (Phase 5):**
+- [ ] `git diff --name-only` - Verify changed files
+- [ ] `git add -A` - All changes staged
+- [ ] `git status --porcelain` - Should be empty after commit
+- [ ] Commit message includes issue number
+
+**Before PR Creation (Phase 6):**
+- [ ] `git log --oneline -1` - Verify commit exists
+- [ ] `git push -u origin BRANCH` - Branch pushed with tracking
+- [ ] `git status -uno` - Shows "up to date with origin"
+- [ ] `git ls-remote --heads origin BRANCH` - Remote branch confirmed
+
+**PR Creation Success (Phase 7):**
+- [ ] `gh pr list --head BRANCH` - PR exists
+- [ ] PR URL returned and accessible
+- [ ] Issue linked with "Closes #N" in PR body
+
+### D. Environment Checklist
 -   [ ] Correct version of [Language/Runtime] installed
 -   [ ] [Package Manager] installed
 -   [ ] GitHub CLI configured
